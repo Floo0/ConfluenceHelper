@@ -13,7 +13,7 @@ export default class Action extends PureComponent {
 
         this.state = {
             name: "Unicorn",
-            link: "",
+            link: "https://www.youtube.com/watch?v=YbYWhdLO43Q",
             category: this.categories[0],
         }
     }

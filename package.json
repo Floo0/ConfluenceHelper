@@ -4,9 +4,10 @@
   "description": "JS overview webpage to confluence. Visualises  confluence pages, superior hierarchical topics and relations.",
   "main": "webpack.config.js",
   "dependencies": {
-    "neovis.js": "^1.4.0",
     "react-bootstrap": "^1.0.0-beta.17",
-    "neo4j-driver": "^4.0.2"
+    "neo4j-driver": "^4.0.2",
+    "pubsub-js": "^1.8.0",
+    "react-force-graph": "^1.33.1"
   },
   "devDependencies": {
     "@babel/core": "^7.8.7",
