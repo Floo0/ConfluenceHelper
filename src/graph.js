@@ -79,6 +79,33 @@ export default class Graph extends PureComponent {
         return label
     }
 
+    renderNode(node, ctx, currentGlobalScale, isShadowContext) {
+        console.log("renderNode:", this, node, ctx, currentGlobalScale, isShadowContext)
+        
+        // node shape -circle
+        ctx.beginPath()
+        ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI, false)
+        ctx.fillStyle = "hsl(127, 74%, 30%)"
+        ctx.fill()
+
+        // node label - name
+        const label = node.name
+        const fontSize = 12/currentGlobalScale
+        const offset = 10/currentGlobalScale
+        // const textWidth = ctx.measureText(label).width
+        // const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
+        //# label background
+        // ctx.fillStyle = 'hsl(0, 0%, 100%)'
+        // ctx.fillRect(node.x - bckgDimensions[0] / 2, node.y - bckgDimensions[1] / 2, ...bckgDimensions)
+        //# text
+        ctx.fillStyle = 'hsl(0, 0%, 0%)'
+        ctx.font = `${fontSize}px Sans-Serif`
+        ctx.fillText(label, node.x + offset, node.y - offset)
+
+        // link props
+
+    }
+
     componentDidMount() {
         this.reloadGraph()
     }
@@ -99,11 +126,16 @@ export default class Graph extends PureComponent {
                                 graphData={this.state.graph}
                                 width={1000}
                                 height={550}
+                                linkDirectionalArrowLength={5}
+                                linkWidth={3}
 
                                 // actions
                                 onNodeClick={this.handleOnNodeClick.bind(this)}
                                 onNodeRightClick={this.handleNodeRightClick.bind(this)}
                                 nodeLabel={this.parseNodeLabel.bind(this)}
+
+                                // rendering
+                                nodeCanvasObject={this.renderNode.bind(this)}
                             /> 
                         </div>
                     </Collapse>
