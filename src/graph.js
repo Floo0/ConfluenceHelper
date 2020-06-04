@@ -56,8 +56,8 @@ export default class Graph extends PureComponent {
 
     handleNodeRightClick(node, event) {
         // console.log("handleNodeRightClick:", node, event)
-        deleteNode(node.id)
-        this.reloadGraph()
+        // deleteNode(node.id)
+        // this.reloadGraph()
     }
 
     handleReload(event) {
@@ -73,6 +73,7 @@ export default class Graph extends PureComponent {
     parseNodeLabel(data) {
         // console.log("parseNodeLabel:", data)
         var label = "ID:" + data.id
+        label += "<br>Page Rank: " + data.pageRank
         label += "<br>Name: " + data.name
         label += "<br>Label: " + data.label
         label += "<br>Link: " + data.link
@@ -80,12 +81,30 @@ export default class Graph extends PureComponent {
     }
 
     renderNode(node, ctx, currentGlobalScale, isShadowContext) {
-        console.log("renderNode:", this, node, ctx, currentGlobalScale, isShadowContext)
+        // console.log("renderNode:", this, node, ctx, currentGlobalScale, isShadowContext)
         
         // node shape -circle
+        var rad = 3
+        if (node.pageRank !== 0) {
+            rad = 1/node.pageRank + rad
+        }
         ctx.beginPath()
-        ctx.arc(node.x, node.y, 5, 0, 2 * Math.PI, false)
-        ctx.fillStyle = "hsl(127, 74%, 30%)"
+        ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
+        ctx.fillStyle = "hsl(300, 75%, 40%)"
+        switch (node.label) {
+            case "knowledge":
+                ctx.fillStyle = "hsl(25, 75%, 40%)" // orange-brown
+                break
+            case "paper":
+                ctx.fillStyle = "hsl(15, 75%, 40%)" // red-brown
+                break
+            case "project":
+                ctx.fillStyle = "hsl(135, 75%, 40%)" // green
+                break
+            case "editor":
+                ctx.fillStyle = "hsl(225, 75%, 40%)" // blue
+                break
+        }
         ctx.fill()
 
         // node label - name

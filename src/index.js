@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom'
 import {Navbar, Nav, Row, Col, Button,ButtonToolbar} from 'react-bootstrap'
 
 import Graph from './graph'
-import Action from './action'
+import Creator from './creator'
 
 
 class App extends Component {
@@ -14,7 +14,7 @@ class App extends Component {
         this.state = {
             hide: {
                 graph: false, // true,
-                action: false,
+                creator: false,
             }
         }
     }
@@ -22,7 +22,7 @@ class App extends Component {
     selectGraph(graph) {
         var hide = this.state.hide
         if (graph === "quantity") {hide.graph = !hide.graph}
-        if (graph === "transition") {hide.action = !hide.action}
+        if (graph === "transition") {hide.creator = !hide.creator}
         this.setState({hide: hide})
     }
  
@@ -35,17 +35,17 @@ class App extends Component {
                         <Navbar.Brand className="px-3 py-2">Confluencer</Navbar.Brand>
                         <Nav.Link style={{color: this.state.hide.graph? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
                             paddingTop: "0.83em", fontWeight: this.state.hide.graph? "normal": "bold"}} 
-                            onSelect={this.selectGraph.bind(this, 'quantity')} eventKey="main">Topics Graph</Nav.Link>
-                        <Nav.Link style={{color: this.state.hide.action? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
-                            paddingTop: "0.83em", fontWeight: this.state.hide.action? "normal": "bold"}} 
-                            onSelect={this.selectGraph.bind(this, 'transition')} eventKey="main">Topics Action</Nav.Link>
+                            onSelect={this.selectGraph.bind(this, 'quantity')} eventKey="main">Graph</Nav.Link>
+                        <Nav.Link style={{color: this.state.hide.creator? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
+                            paddingTop: "0.83em", fontWeight: this.state.hide.creator? "normal": "bold"}} 
+                            onSelect={this.selectGraph.bind(this, 'transition')} eventKey="main">Creator</Nav.Link>
                     </Nav>
                 </Navbar>
                 <Row className="m-0 p-0" hidden={this.state.hide.graph}>
                     <Graph/>
                 </Row>
-                <Row className="m-0 p-0" hidden={this.state.hide.action}>
-                    <Action/>
+                <Row className="m-0 p-0" hidden={this.state.hide.creator}>
+                    <Creator/>
                 </Row>
             </div>
         )

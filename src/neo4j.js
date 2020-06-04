@@ -3,7 +3,8 @@
 // import { neo4j } from 'neo4j-driver'
 
 
-const host = 'bolt://localhost'
+// const host = 'bolt://localhost'
+const host = 'bolt://141.30.136.185'
 const port = '7687'
 
 function parseNode(record) {
@@ -16,9 +17,13 @@ function parseNode(record) {
         label = node.labels[0]
     }
     // properties
+    var pageRank = 0
     var name = ""
     var link = ""
     if (node.properties) {
+        if (node.properties.pageRank) {
+            pageRank = node.properties.pageRank
+        }
         if (node.properties.name) {
             name = node.properties.name
         }
@@ -29,6 +34,7 @@ function parseNode(record) {
 
     const parsedNode = {
         "id": node.identity.high.toString() + node.identity.low.toString(),
+        "pageRank": pageRank,
         "name": name,
         "label": label,
         "link": link
@@ -117,6 +123,25 @@ function createSession(driver) {
     return session
 }
 
+function _updatePageRank(session) {
+    var query = `
+        CALL gds.graph.create('pagerank_graph', '*', '*');
+        CALL gds.pageRank.write('pagerank_example',
+        {maxIterations: 20, dampingFactor: 0.85,     
+        writeProperty:'pageRank'});
+        CALL gds.graph.drop('pagerank_graph');
+    `
+    session
+        .run(query)
+        .then((results) => {
+            // results.records.forEach((record) => console.log(record))
+            console.log("results:", results)
+        })
+        .catch(error => {
+            console.log(error)
+        })
+}
+
 export function getData(pointer) {
     // console.log("getData")
 
@@ -137,30 +162,46 @@ export function getData(pointer) {
         })
 }
 
-export function createNode(node, links) {
-    // console.log("createNode")
+export function createNode(type, node, links) {
+    console.log("createNode:", type, node, links)
     var driver = createDriver()    
     var session = createSession(driver)
 
-    var query = `
-    MERGE (c:CLabel {name: '` + links[0].Target + `'})
-    MERGE (n:TestLabel{name: '` + node.Name +`', link: '` + node.Link + `'})
-    MERGE (c)-[:` + links[0].Type + `]->(n)
-    `
+    var query = ``
+    switch (type) {
+        case "project":
+            query += `MERGE (n:project {name: '` + node.Name + `', link: '` + node.Link + `'})`
+            break
+        case "editor":
+            query += `MERGE (n:editor {name: '` + node.Name + `', link: '` + node.Link + `'})`
+            break
+    }
+    if (links) {
+        for (const link of links) {
+            query += `MATCH (m) where ID(m)=` + link.Id
+            query += `MERGE (m)-[:` + link.Type + `]->(n)`
+        }
+    }
+    // console.log("query:", query)
+    if (query === ""){
+        console.error("Empty query, probably node type not set correctly.")
+        return
+    }
     // Create (n:TestLabel {name: '` + node.Name +`', link: '` + node.Link + `'})`
     // query += `<-[:` + links[0].Type + `]-(c:CLabel {name: '` + links[0].Target + `'})`
-    // console.log("query:", query)
 
     session
         .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
             console.log("results:", results)
+            _updatePageRank(session)
             session.close()
             driver.close()
         })
         .catch(error => {
-            console.log(error)
+            console.error("query:", query)
+            console.error("neo4j error:", error)
         })
 }
 
@@ -182,6 +223,6 @@ export function deleteNode(id) {
             driver.close()
         })
         .catch(error => {
-            console.log(error)
+            console.error(error)
         })
 }
