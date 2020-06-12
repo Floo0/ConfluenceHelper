@@ -1,15 +1,20 @@
 // MATCH (n)-[r]->(m) RETURN n, TYPE(r), m
 
 // import { neo4j } from 'neo4j-driver'
+import { customAlphabet } from 'nanoid'
+import {cloneDeep} from 'lodash'
 
 
 // const host = 'bolt://localhost'
 const host = 'bolt://141.30.136.185'
 const port = '7687'
+const relationType = 'DETAIL'
 
-function parseNode(record) {
-    const node = record.get('n')
-    // console.log("parseNode", node)
+// takes in a single neo4j record and extracts the node properties
+function parseRecordToNode(record, column) {
+    const node = record.get(column)
+    // console.log("parseRecordToNode", node, record, column)
+    if (node == null) {return} // skip empty nodes
 
     // labels
     var label = ""
@@ -20,6 +25,10 @@ function parseNode(record) {
     var pageRank = 0
     var name = ""
     var link = ""
+    var creation = ""
+    var update = ""
+    var parent = ""
+    var short = ""
     if (node.properties) {
         if (node.properties.pageRank) {
             pageRank = node.properties.pageRank
@@ -30,6 +39,18 @@ function parseNode(record) {
         if (node.properties.link) {
             link = node.properties.link
         }
+        if (node.properties.creation) {
+            creation = node.properties.creation
+        }
+        if (node.properties.update) {
+            update = node.properties.update
+        }
+        if (node.properties.parent) {
+            parent = node.properties.parent
+        }
+        if (node.properties.short) {
+            short = node.properties.short
+        }
     }
 
     const parsedNode = {
@@ -37,13 +58,19 @@ function parseNode(record) {
         "pageRank": pageRank,
         "name": name,
         "label": label,
-        "link": link
+        "link": link,
+        "creation": new Date(creation),
+        "update": new Date(update),
+        "parent": parent,
+        "short": short,
     }
+    // console.log("parseRecordToNode parsedNode:", parsedNode)
     return parsedNode
 }
 
-function parseLink(record) {
-    const link = record.get('r')
+// takes in a single neo4j record and extracts the link properties
+function parseRecordToLink(record, column) {
+    const link = record.get(column)
     // console.log("parseLink", link)
     if (link == null) {return null}
 
@@ -73,8 +100,8 @@ function checkNodeInList(newNode, nodes) {
     return false
 }
 
-function parseResults(results, component) {
-    // console.log("parseResults:", results)
+function parseGraph(results, component) {
+    // console.log("parseGraph:", results)
     var nodes = []
     var links = []
 
@@ -86,12 +113,12 @@ function parseResults(results, component) {
     // access data
     for (const record of results.records) {
         // console.log("record:", record)
-        const node = parseNode(record)
+        const node = parseRecordToNode(record, 'n')
         if (!checkNodeInList(node, nodes)) {
             nodes.push(node)
         }
 
-        const link = parseLink(record)
+        const link = parseRecordToLink(record, 'r')
         if (link != null) {links.push(link)}
 
         // console.log("node, links", nodes, links)
@@ -123,26 +150,110 @@ function createSession(driver) {
     return session
 }
 
-function _updatePageRank(session) {
-    var query = `
-        CALL gds.graph.create('pagerank_graph', '*', '*');
-        CALL gds.pageRank.write('pagerank_example',
-        {maxIterations: 20, dampingFactor: 0.85,     
-        writeProperty:'pageRank'});
-        CALL gds.graph.drop('pagerank_graph');
-    `
+function runQueries(session, queries) {
+    console.log("runQueries:", queries)
     session
-        .run(query)
+        .run(queries[0])
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
-            console.log("results:", results)
+            // console.log("results:", results)
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            if (queries.length > 1) {runQueries(session, queries.shift())}
+        
         })
         .catch(error => {
             console.log(error)
         })
 }
 
-export function getData(pointer) {
+function updatePageRank(session) {
+    console.log("updatePageRank")
+    var queries = []
+    queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
+    queries.push(`CALL gds.pageRank.write('pagerank_example', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
+    queries.push(`CALL gds.graph.drop('pagerank_graph')`)
+
+    runQueries(session, queries)
+}
+
+function parseNodes(results, component) {
+    // console.log("parseNodes:", results)
+    var nodes = [] // raw parsed nodes
+    var creatorNodes = [] // special "value , labe, data" nodes for react-select
+
+    // // handle response info
+    // if (results.summary.notifications.length > 0) {
+    //     console.log("neo4j response info:", results.summary.notifications)
+    // }
+
+    // access data
+    for (const record of results.records) {
+        // console.log("record:", record)
+        const node = parseRecordToNode(record, 'n')
+        if (!checkNodeInList(node, nodes)) {
+            nodes.push(node)
+        }
+    }
+
+    for (const node of nodes) {
+        // create elements for react-select
+        const creatorNode = {
+            value: node.id,
+            label: node.name,
+            data: node, // used to transfer whole data
+        }
+        creatorNodes.push(creatorNode)
+    }
+
+    // console.log("creatorNodes:", creatorNodes)
+    component.setState({options: creatorNodes})
+}
+
+function parseNode(results, id, component) {
+    // console.log("parseNode:", results, id)
+    var node = null
+    var parents = []
+    var oldParents = []
+
+    // // handle response info
+    // if (results.summary.notifications.length > 0) {
+    //     console.log("neo4j response info:", results.summary.notifications)
+    // }
+
+    // access data
+    for (const record of results.records) {
+        // console.log("record:", record)
+        for (const key of record.keys) {
+            const parsedNode = parseRecordToNode(record, key)
+            if (!parsedNode) {continue}
+            // console.log("parsedNode:", parsedNode)
+            if (parsedNode.id === id) {
+                node = parsedNode
+            } else {
+                parents.push({value: parsedNode.id, label: parsedNode.name})
+                oldParents.push(parsedNode.id)
+            }
+        }
+    }
+
+    // console.log("parsed node:", node, parents, oldParents)
+    component.setState({
+        id: id,
+        name: node.name,
+        link: node.link,
+        creation: node.creation,
+        update: node.update,
+        short: node.short,
+        parents: parents,  // current parent relations
+        oldParents: oldParents, // parent ids saved for comparison with parents
+    })
+}
+
+// retrieve all nodes and relations
+// returns graph as {nodes, links}
+export function getGraph(component) {
     // console.log("getData")
 
     var driver = createDriver()    
@@ -156,52 +267,180 @@ export function getData(pointer) {
         `)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
-            parseResults(results, pointer)
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            parseGraph(results, component)
+            session.close()
+            driver.close()
+        })
+}
+
+// retrieve all nodes without relations but parents
+// returns "option nodes" as {value, label, data}
+export function getNodes(component) {
+    var driver = createDriver()    
+    var session = createSession(driver)
+
+    session
+        .run(`
+            MATCH (n)
+            RETURN n
+        `)
+        .then((results) => {
+            // results.records.forEach((record) => console.log(record))
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            parseNodes(results, component)
+            session.close()
+            driver.close()
+        })
+}
+
+// retrieve all properties and parent node ids for sepcific node id
+export function getNode(component, id) {
+    // console.log("getNode:", id)
+    var driver = createDriver()    
+    var session = createSession(driver)
+
+    var query = `MATCH (n)`
+    query += ` WHERE ID(n)=` + id.replace(/^0/, '') // delete leading zero, because api gets it wrong at 08
+    query += ` OPTIONAL MATCH (m)-[r]->(n)`
+    query += ` RETURN n, m`
+    // console.log("query:", query)
+
+    session
+        .run(query)
+        .then((results) => {
+            // results.records.forEach((record) => console.log(record))
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            parseNode(results, id, component)
             session.close()
             driver.close()
         })
 }
 
 export function createNode(type, node, links) {
-    console.log("createNode:", type, node, links)
-    var driver = createDriver()    
+    // console.log("createNode:", type, node, links)
+    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 5)
+    var driver = createDriver()
     var session = createSession(driver)
 
     var query = ``
-    switch (type) {
-        case "project":
-            query += `MERGE (n:project {name: '` + node.Name + `', link: '` + node.Link + `'})`
-            break
-        case "editor":
-            query += `MERGE (n:editor {name: '` + node.Name + `', link: '` + node.Link + `'})`
-            break
-    }
+    var linkIDs = []
+    const nodeID = nanoid()
     if (links) {
         for (const link of links) {
-            query += `MATCH (m) where ID(m)=` + link.Id
-            query += `MERGE (m)-[:` + link.Type + `]->(n)`
+            const id = nanoid()
+            linkIDs.push(id)
+            query += ` MATCH (` + id + `) WHERE ID(` + id + `)=` + link
         }
+    }
+    switch (type) {
+        case "knowledge":
+            query += ` MERGE (` + nodeID + `:knowledge {name: '` + node.Name + `', link: '` + node.Link + `'`
+            query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
+            break
+        case "paper":
+            query += ` MERGE (` + nodeID + `:knowledge {name: '` + node.Name + `', link: '` + node.Link + `'`
+            query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
+            break
+        case "project":
+            query += ` MERGE (` + nodeID + `:project {name: '` + node.Name + `', link: '` + node.Link + `'})`
+            break
+        case "editor":
+            query += ` MERGE (` + nodeID + `:editor {name: '` + node.Name + `', link: '` + node.Link + `'})`
+            break
+    }
+    for (const id of linkIDs) {
+        query += ` MERGE (` + id + `)-[:` + relationType + `]->(` + nodeID + `)`
     }
     // console.log("query:", query)
     if (query === ""){
         console.error("Empty query, probably node type not set correctly.")
         return
     }
-    // Create (n:TestLabel {name: '` + node.Name +`', link: '` + node.Link + `'})`
-    // query += `<-[:` + links[0].Type + `]-(c:CLabel {name: '` + links[0].Target + `'})`
 
     session
         .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
-            console.log("results:", results)
-            _updatePageRank(session)
-            session.close()
-            driver.close()
+            // console.log("results:", results)
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            updatePageRank(session)
+            // session.close() // -> is done in updatePageRank
+            // driver.close()
         })
         .catch(error => {
             console.error("query:", query)
             console.error("neo4j error:", error)
+        })
+}
+
+export function updateNode(node) {
+    // console.log("updateNode", node)
+    const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 5)
+    var driver = createDriver()    
+    var session = createSession(driver)
+
+    var properties = cloneDeep(node)
+    delete properties.id
+    delete properties.createParents
+    delete properties.deleteParents
+    var createLinks = []
+    var deleteLinks = []
+    const nodeID = nanoid()
+
+    var query = `MATCH (` + nodeID + `) WHERE ID(` + nodeID + `)=` + node.id.replace(/(^0+)(.)/, '$2') // delete leading zeros, because api gets it wrong at 08
+    if (node.createParents) {
+        for (const parent of node.createParents) {
+            console.log("parent", parent)
+            const id = nanoid()
+            createLinks.push(id)
+            query += ` MATCH (` + id + `) WHERE ID(` + id + `)=` + parent.replace(/(^0+)(.)/, '$2')
+        }
+    }
+    if (node.deleteParents) {
+        for (const parent of node.deleteParents) {
+            const id = nanoid()
+            deleteLinks.push(id)
+            query += ` MATCH (n)-[` + id + `:` + relationType + `]->(m) WHERE ID(n)=` + parent.replace(/(^0+)(.)/, '$2') + ` AND ID(m)=` + node.id.replace(/(^0+)(.)/, '$2')
+        }
+    }
+    query += ` SET ` + nodeID + ` += ` + JSON.stringify(properties)
+    query = query.replace(/"([^"]+?)":/g, (m, g) => {return g + `:`})
+    for (const id of createLinks) {
+        query += ` MERGE (` + id + `)-[:` + relationType + `]->(` + nodeID + `)`
+    }
+    var first = true
+    for (const id of deleteLinks) {
+        if (first) {
+            query += ` DELETE ` + id
+            first = false
+        } else {
+            query += `, ` + id
+        }
+    }
+    // console.log("query:", query)
+
+    session
+        .run(query)
+        .then((results) => {
+            // results.records.forEach((record) => console.log(record))
+            // console.log("update results:", results)
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            session.close()
+            driver.close()
+        })
+        .catch(error => {
+            console.error(error)
         })
 }
 
@@ -210,15 +449,19 @@ export function deleteNode(id) {
     var driver = createDriver()    
     var session = createSession(driver)
 
+    var query = `MATCH (n)`
+    query += ` WHERE ID(n)=` + id.replace(/(^0+)(.)/, '$2') // delete leading zeros, because api gets it wrong at 08
+    query += ` OPTIONAL MATCH (n)-[r]-()`
+    query += ` DELETE n,r`
+
     session
-        .run(`
-            MATCH (n) where ID(n)=`+id+`
-            OPTIONAL MATCH (n)-[r]-()
-            DELETE n,r
-        `)
+        .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
-            console.log("results:", results)
+            // console.log("delete results:", results)
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
             session.close()
             driver.close()
         })

@@ -3,7 +3,7 @@ import {Card, Collapse, Button} from 'react-bootstrap'
 import { ForceGraph2D } from 'react-force-graph'
 import PubSub from 'pubsub-js'
 
-import { getData, deleteNode } from './neo4j'
+import { getGraph, deleteNode } from './neo4j'
 
 
 export default class Graph extends PureComponent {
@@ -56,8 +56,8 @@ export default class Graph extends PureComponent {
 
     handleNodeRightClick(node, event) {
         // console.log("handleNodeRightClick:", node, event)
-        // deleteNode(node.id)
-        // this.reloadGraph()
+        deleteNode(node.id)
+        setTimeout(this.reloadGraph.bind(this), 500)
     }
 
     handleReload(event) {
@@ -67,7 +67,7 @@ export default class Graph extends PureComponent {
 
     // used to reload graph if data changed (after some action with neo4j)
     reloadGraph() {
-        getData(this)
+        getGraph(this)
     }
 
     parseNodeLabel(data) {
@@ -75,7 +75,7 @@ export default class Graph extends PureComponent {
         var label = "ID:" + data.id
         label += "<br>Page Rank: " + data.pageRank
         label += "<br>Name: " + data.name
-        label += "<br>Label: " + data.label
+        // label += "<br>Label: " + data.label
         label += "<br>Link: " + data.link
         return label
     }
