@@ -151,28 +151,32 @@ function createSession(driver) {
 }
 
 function runQueries(session, queries) {
-    console.log("runQueries:", queries)
+    // console.log("runQueries:", queries)
+    const query = queries[0]
     session
-        .run(queries[0])
+        .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
             // console.log("results:", results)
             if (results.summary.notifications.length > 0) {
                 console.log("neo4j response info:", results.summary.notifications)
             }
-            if (queries.length > 1) {runQueries(session, queries.shift())}
-        
+            if (queries.length > 1) {
+                queries.shift()
+                runQueries(session, queries)
+            }
         })
         .catch(error => {
-            console.log(error)
+            console.log("runQuery:", query)
+            console.log("runQueries error:", error)
         })
 }
 
 function updatePageRank(session) {
-    console.log("updatePageRank")
+    // console.log("updatePageRank")
     var queries = []
     queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
-    queries.push(`CALL gds.pageRank.write('pagerank_example', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
+    queries.push(`CALL gds.pageRank.write('pagerank_graph', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
     queries.push(`CALL gds.graph.drop('pagerank_graph')`)
 
     runQueries(session, queries)
@@ -323,8 +327,8 @@ export function getNode(component, id) {
         })
 }
 
-export function createNode(type, node, links) {
-    // console.log("createNode:", type, node, links)
+export function createNode(type, node, parents) {
+    // console.log("createNode:", type, node, parents)
     const nanoid = customAlphabet('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', 5)
     var driver = createDriver()
     var session = createSession(driver)
@@ -332,11 +336,11 @@ export function createNode(type, node, links) {
     var query = ``
     var linkIDs = []
     const nodeID = nanoid()
-    if (links) {
-        for (const link of links) {
+    if (parents) {
+        for (const parentID of parents) {
             const id = nanoid()
             linkIDs.push(id)
-            query += ` MATCH (` + id + `) WHERE ID(` + id + `)=` + link
+            query += ` MATCH (` + id + `) WHERE ID(` + id + `)=` + parentID.replace(/(^0+)(.)/, '$2')
         }
     }
     switch (type) {
@@ -345,11 +349,12 @@ export function createNode(type, node, links) {
             query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
             break
         case "paper":
-            query += ` MERGE (` + nodeID + `:knowledge {name: '` + node.Name + `', link: '` + node.Link + `'`
+            query += ` MERGE (` + nodeID + `:paper {name: '` + node.Name + `', link: '` + node.Link + `'`
             query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
             break
         case "project":
-            query += ` MERGE (` + nodeID + `:project {name: '` + node.Name + `', link: '` + node.Link + `'})`
+            query += ` MERGE (` + nodeID + `:project {name: '` + node.Name + `', link: '` + node.Link + `'`
+            query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
             break
         case "editor":
             query += ` MERGE (` + nodeID + `:editor {name: '` + node.Name + `', link: '` + node.Link + `'})`
@@ -399,7 +404,7 @@ export function updateNode(node) {
     var query = `MATCH (` + nodeID + `) WHERE ID(` + nodeID + `)=` + node.id.replace(/(^0+)(.)/, '$2') // delete leading zeros, because api gets it wrong at 08
     if (node.createParents) {
         for (const parent of node.createParents) {
-            console.log("parent", parent)
+            // console.log("parent", parent)
             const id = nanoid()
             createLinks.push(id)
             query += ` MATCH (` + id + `) WHERE ID(` + id + `)=` + parent.replace(/(^0+)(.)/, '$2')

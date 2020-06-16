@@ -55,7 +55,7 @@ export default class Knowledge extends Component {
         }
     }
     handleParentsChange(event){
-        console.log("handleParentsChange", event)
+        // console.log("handleParentsChange", event)
         this.setState({parents: event})
     }
     handleShortChange(event) {
@@ -85,7 +85,6 @@ export default class Knowledge extends Component {
             PubSub.publish('creator', {"do": "update", "use": ""})
             PubSub.publish('manipulator', {"do": "update", "use": ""})
         }, 1000)
-        
     }
     
     handleUpdate() {

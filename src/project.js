@@ -1,8 +1,10 @@
 import React, { Component } from 'react'
 import { Card, InputGroup, Form, FormControl, Dropdown, Button,  DropdownButton, Collapse } from 'react-bootstrap'
+import DatePicker from 'react-datepicker'
+import Select from 'react-select'
 import PubSub from 'pubsub-js'
 
-import { getNode, createNode, updateNode, deleteNode } from './neo4j'
+import { getNodes, getNode, createNode, updateNode, deleteNode } from './neo4j'
 
 
 export default class Project extends Component {
@@ -13,7 +15,13 @@ export default class Project extends Component {
             id: "04", // current node id
             name: "Confluencer",
             link: "http://141.30.193.118:8090/x/CIGf",
+            creation: new Date(),
+            update: new Date(),
+            short: "Unicorns can fly and poop ice cream.",
+            parents: [],  // current parent relations
 
+            oldParents: [], // retrieved parent ids, to compare with current parents
+            options: [], // used for potential parent relations
             hide: {
                 create: (typeof this.props.node !== 'undefined'),
                 update: (typeof this.props.node === 'undefined'),
@@ -21,6 +29,7 @@ export default class Project extends Component {
             },
         }
 
+        getNodes(this)
         if (this.props.node) {getNode(this, this.props.node)} // get current node properties (for manipulator)
     }
 
@@ -38,19 +47,31 @@ export default class Project extends Component {
             this.setState({link: event.target.value})
         }
     }
+    handleParentsChange(event){
+        // console.log("handleParentsChange", event)
+        this.setState({parents: event})
+    }
+    handleShortChange(event) {
+        if (event.target.value === "") {
+            this.setState({short: event.target.placeholder})
+        } else {
+            this.setState({short: event.target.value})
+        }
+    }
 
     handleCreate() {
         // console.log("handleCreate", this.state)
         const node = {
             'Name': this.state.name,
-            'Link': this.state.link
+            'Link': this.state.link,
+            'Creation': this.state.creation,
+            'Update': this.state.update,
+            'Short': this.state.short, 
         }
-        const links = [
-            // {
-            //     'Target': this.state.category,
-            //     'Type': 'part'
-            // }
-        ]
+        var links = []
+        for (const parent of this.state.parents) {
+            links.push(parent.value)
+        }
         createNode("project", node, links)
         setTimeout(() => {
             setTimeout(() => PubSub.publish('graph', {"do": "reload", "use": ""}), 1000)
@@ -61,10 +82,24 @@ export default class Project extends Component {
 
     handleUpdate() {
         // console.log("handleUpdate", this.state)
+        var parents = []
+        for (const parent of this.state.parents) {
+            parents.push(parent.value)
+        }
+        // https://stackoverflow.com/questions/1187518/how-to-get-the-difference-between-two-arrays-in-javascript
+        const createParents = parents.filter(x => !this.state.oldParents.includes(x))
+        const deleteParents = this.state.oldParents.filter(x => !parents.includes(x))
+        // console.log("parents:", parents, this.state.oldParents, createParents, deleteParents)
+     
         const node = {
             id: this.state.id, // current node id
             name: this.state.name,
             link: this.state.link,
+            creation: this.state.creation,
+            update: this.state.update,
+            short: this.state.short,
+            createParents: createParents,
+            deleteParents: deleteParents,
         }
         updateNode(node)
         setTimeout(() => {
@@ -118,6 +153,59 @@ export default class Project extends Component {
                         // aria-label="Username"
                         // aria-describedby="basic-addon1"
                         onChange={this.handleLinkChange.bind(this)}
+                    />
+                </InputGroup>
+
+                <InputGroup className="mb-6 p-1">
+                    <InputGroup.Prepend>
+                        <InputGroup.Text id="basic-addon1" style={{width: "80px"}} className="p-1">Creation</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <DatePicker
+                        className="p-1"
+                        selected={this.state.creation}
+                        onChange={(date) => {this.setState({creation: date})}}
+                        showPopperArrow={false}
+                        dateFormat="dd. MMMM, yyyy"
+                    />
+                </InputGroup>
+
+                <InputGroup className="mb-6 p-1">
+                    <InputGroup.Prepend>
+                        <InputGroup.Text id="basic-addon1" style={{width: "80px"}} className="p-1">Update</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <DatePicker
+                        className="p-1"
+                        selected={this.state.update}
+                        onChange={(date) => {this.setState({update: date})}}
+                        showPopperArrow={false}
+                        dateFormat="dd. MMMM, yyyy"
+                    />
+                </InputGroup>
+
+                <InputGroup className="p-1">
+                    <InputGroup.Prepend>
+                        <InputGroup.Text id="basic-addon1" style={{width: "80px"}} className="p-1">Parents</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <div style={{width: '300px'}}>
+                        <Select
+                            isMulti
+                            closeMenuOnSelect={true}
+                            value={this.state.parents}
+                            options={this.state.options}
+                            onChange={this.handleParentsChange.bind(this)}
+                        />
+                    </div>
+                </InputGroup>
+
+                <InputGroup className="p-1 pb-2">
+                    <InputGroup.Prepend>
+                        <InputGroup.Text id="basic-addon1" style={{width: "80px"}} className="p-1">Short</InputGroup.Text>
+                    </InputGroup.Prepend>
+                    <FormControl
+                        placeholder={this.state.short}
+                        as="textarea"
+                        // aria-label="With textarea"
+                        onChange={this.handleShortChange.bind(this)}
                     />
                 </InputGroup>
                 
