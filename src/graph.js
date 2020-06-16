@@ -88,7 +88,8 @@ export default class Graph extends PureComponent {
         // node shape -circle
         var rad = 2
         if (node.pageRank !== 0) {
-            rad = (1/node.pageRank + rad)/2
+            // rad = (1/node.pageRank + rad)/2
+            rad = node.pageRank + rad
         }
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)

@@ -175,7 +175,11 @@ function runQueries(session, queries) {
 function updatePageRank(session) {
     // console.log("updatePageRank")
     var queries = []
-    queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
+    // queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
+    var q = `CALL gds.graph.create.cypher('pagerank_graph', `
+    q += `'MATCH (n) RETURN id(n) AS id', `
+    q += `'MATCH (a)-[:DETAIL]->(b) RETURN id(b) AS source, id(a) AS target')`
+    queries.push(q)
     queries.push(`CALL gds.pageRank.write('pagerank_graph', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
     queries.push(`CALL gds.graph.drop('pagerank_graph')`)
 
