@@ -15,26 +15,31 @@ export default class Graph extends PureComponent {
             graph: {
                 "nodes": [ 
                     { 
-                      "id": "id1",
-                      "name": "name1",
-                      "val": 1 
+                      "id": "00",
+                      "name": "No",
+                      "label": "knowledge",
+                      "pageRank": 0.15,
                     },
                     { 
-                      "id": "id2",
-                      "name": "name2",
-                      "val": 10 
+                      "id": "01",
+                      "name": "Data",
+                      "label": "knowledge",
+                      "pageRank": 0.25,
                     },
                 ],
                 "links": [
                     {
-                        "source": "id1",
-                        "target": "id2"
+                        "source": "00",
+                        "target": "01",
                     },
                 ]
             }
         }
 
         this.graphRef = React.createRef()
+        this.filter = {
+            labels: ["knowledge", "paper"],
+        },
 
         PubSub.subscribe('graph', this.onMessage.bind(this))
     }
@@ -43,6 +48,10 @@ export default class Graph extends PureComponent {
         // console.log("onMessage", topic, data)
         switch(data.do) {
             case "reload":
+                this.reloadGraph()
+                break
+            case "filter":
+                this.filter = data.use
                 this.reloadGraph()
                 break
         }
@@ -69,16 +78,20 @@ export default class Graph extends PureComponent {
 
     // used to reload graph if data changed (after some action with neo4j)
     reloadGraph() {
-        getGraph(this)
+        getGraph(this, this.filter)
     }
 
     parseNodeLabel(data) {
         // console.log("parseNodeLabel:", data)
-        var label = "ID:" + data.id
+        var label = "Name: " + data.name
+        label += "<br>Short: " + data.short
+        // var label = "ID:" + data.id
+        label += "<br>"
+        label += "<br>ID:" + data.id
         label += "<br>Page Rank: " + data.pageRank
-        label += "<br>Name: " + data.name
         // label += "<br>Label: " + data.label
         label += "<br>Link: " + data.link
+        
         return label
     }
 
@@ -89,7 +102,7 @@ export default class Graph extends PureComponent {
         var rad = 2
         if (node.pageRank !== 0) {
             // rad = (1/node.pageRank + rad)/2
-            rad = node.pageRank + rad
+            rad = node.pageRank*50 + rad
         }
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
@@ -131,11 +144,18 @@ export default class Graph extends PureComponent {
     }
 
     componentDidUpdate() {
-        this.graphRef.current.zoom(5,100)
+        this.graphRef.current.zoom(1, 0)
+        this.graphRef.current.zoom(2.5, 1000)
     }
 
     render() {
-        // console.log("render graph")
+        // console.log("render graph", this.state.graph)
+        // for (const link of this.state.graph.links) {
+        //     console.log("link:", link)
+        // }
+        // for (const node of this.state.graph.nodes) {
+        //     console.log("node:", node)
+        // }
         return (
             <div id="Graph" style={{overflow: "hidden"}}>
                 <Card style={{border: "#d8cebc solid 2px"}}>
@@ -149,8 +169,8 @@ export default class Graph extends PureComponent {
                                 ref={this.graphRef}
                                 graphData={this.state.graph}
                                 // width={1000}
-                                width={window.innerWidth}
-                                height={550}
+                                width={window.innerWidth/1.5}
+                                height={700}
                                 linkDirectionalArrowLength={3}
                                 linkWidth={2}
 
@@ -161,9 +181,9 @@ export default class Graph extends PureComponent {
 
                                 // force engine
                                 d3AlphaMin={0.1}
-                                d3AlphaDecay={0.0228}
-                                d3VelocityDecay={0.1}
-                                warmupTicks={100}
+                                d3AlphaDecay={0.03} //
+                                d3VelocityDecay={0.07}
+                                // warmupTicks={100}
 
 
                                 // rendering

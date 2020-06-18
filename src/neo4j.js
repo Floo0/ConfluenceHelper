@@ -88,7 +88,17 @@ function parseRecordToLink(record, column) {
         "source": link.start.high.toString() + link.start.low.toString(),
         "target": link.end.high.toString() + link.end.low.toString()
     }
+    // console.log("parsedRecordToLink result:", parsedLink)
     return parsedLink
+}
+
+function parseRecordToLabel(record, column) {
+    const labels = record.get(column)
+    var label = ""
+    if (labels) {
+        label = labels[0]
+    }
+    return label
 }
 
 function checkNodeInList(newNode, nodes) {
@@ -100,7 +110,7 @@ function checkNodeInList(newNode, nodes) {
     return false
 }
 
-function parseGraph(results, component) {
+function parseGraph(component, results) {
     // console.log("parseGraph:", results)
     var nodes = []
     var links = []
@@ -121,6 +131,9 @@ function parseGraph(results, component) {
         const link = parseRecordToLink(record, 'r')
         if (link != null) {links.push(link)}
 
+        // for (const link of links) {
+        //     console.log("link:", link)
+        // }
         // console.log("node, links", nodes, links)
     }
 
@@ -129,6 +142,9 @@ function parseGraph(results, component) {
         "links": links
     }
     // console.log("graph:", graph)
+    // for (const link of graph.links) {
+    //     console.log("link:", link)
+    // }
     // console.log("component", component)
     component.setState({graph: graph})
 }
@@ -259,26 +275,65 @@ function parseNode(results, id, component) {
     })
 }
 
+function parseLabels(results, component) {
+    var labels = []
+    for (const record of results.records) {
+        const parsed = parseRecordToLabel(record, 'labels(n)')
+        const label = {
+            value: parsed,
+            label: parsed.charAt(0).toUpperCase() + parsed.slice(1),
+        }
+        labels.push(label)
+    }
+    component.setState({labels: labels})
+}
+
 // retrieve all nodes and relations
-// returns graph as {nodes, links}
-export function getGraph(component) {
+// returns graph as {nodes, links} through component.setState({graph: ...})
+// use filter to limit search
+// filter = {labels: [string]}
+export function getGraph(component, filter) {
     // console.log("getData")
 
     var driver = createDriver()    
     var session = createSession(driver)
 
+    var query = `MATCH (n)`
+    var first = true
+    if (filter) {
+        for (const label of filter.labels) {
+            if (first) {
+                query += ` WHERE n:` + label
+                first = false
+            } else {
+                query += ` OR n:` + label
+            }
+        }
+    }
+    query += ` OPTIONAL MATCH (n)-[r]->(m)`
+    if (filter) {
+        query += ` WHERE (n:` + filter.labels[0]
+        for (const label of filter.labels.slice(1, -1)) {
+            query += ` OR n:` + label
+        }
+        query += ` OR n:` + filter.labels.slice(-1)[0] + `)`
+        query += ` AND (m:` + filter.labels[0]
+        for (const label of filter.labels.slice(1, -1)) {
+            query += ` OR m:` + label
+        }
+        query += ` OR m:` + filter.labels.slice(-1)[0] + `)`
+    }
+    query += ` RETURN n, r`
+    // console.log("query:", query)
+
     session
-        .run(`
-            MATCH (n)
-            OPTIONAL MATCH (n)-[r]->(m)
-            RETURN n, r
-        `)
+        .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
             if (results.summary.notifications.length > 0) {
                 console.log("neo4j response info:", results.summary.notifications)
             }
-            parseGraph(results, component)
+            parseGraph(component, results)
             session.close()
             driver.close()
         })
@@ -477,4 +532,27 @@ export function deleteNode(id) {
         .catch(error => {
             console.error(error)
         })
+}
+
+// retrieves all available labels from neo4j
+// writes results back with component.setState({labels})
+export function getLabels(component) {
+    var driver = createDriver()    
+    var session = createSession(driver)
+
+    session
+        .run(`MATCH (n) RETURN distinct labels(n)`)
+        .then((results) => {
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            // console.log("getLabel results:", results)
+            parseLabels(results, component)
+            session.close()
+            driver.close()
+        })
+        .catch(error => {
+            console.error(error)
+        })
+    
 }

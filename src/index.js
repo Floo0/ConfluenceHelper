@@ -2,10 +2,12 @@
 import React, { Component } from 'react'
 import ReactDOM from 'react-dom'
 import {Navbar, Nav, Row, Col, Button,ButtonToolbar} from 'react-bootstrap'
+import { cloneDeep } from 'lodash'
 
 import Graph from './graph'
 import Creator from './creator'
 import Manipulator from './manipulator'
+import Filter from './filter'
 
 
 class App extends Component {
@@ -21,11 +23,9 @@ class App extends Component {
         }
     }
 
-    selectGraph(graph) {
-        var hide = this.state.hide
-        if (graph === "graph") {hide.graph = !hide.graph}
-        if (graph === "creator") {hide.creator = !hide.creator}
-        if (graph === "manipulator") {hide.manipulator = !hide.manipulator}
+    selectGraph(tab) {
+        var hide = cloneDeep(this.state.hide)
+        hide[tab] = !hide[tab]
         this.setState({hide: hide})
     }
  
@@ -45,14 +45,22 @@ class App extends Component {
                         <Nav.Link style={{color: this.state.hide.manipulator? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
                             paddingTop: "0.83em", fontWeight: this.state.hide.manipulator? "normal": "bold"}} 
                             onSelect={this.selectGraph.bind(this, 'manipulator')} eventKey="main">Manipulator</Nav.Link>
+                        <Nav.Link style={{color: this.state.hide.filter? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
+                            paddingTop: "0.83em", fontWeight: this.state.hide.filter? "normal": "bold"}} 
+                            onSelect={this.selectGraph.bind(this, 'filter')} eventKey="main">Filter</Nav.Link>
                     </Nav>
                 </Navbar>
                 <Row className="m-0 p-0" hidden={this.state.hide.graph}>
-                    <Graph/>
+                    <Col className="m-0 p-0" hidden={this.state.hide.graph}>
+                        <Graph/>
+                    </Col>
+                    <Col className="m-0 p-0" hidden={this.state.hide.filter}>
+                        <Filter/>
+                    </Col>
                 </Row>
                 <Row className="m-0 p-0">
                     <Col className="m-0 p-0" hidden={this.state.hide.creator}>
-                        <Creator />
+                        <Creator/>
                     </Col>
                     <Col className="m-0 p-0" hidden={this.state.hide.manipulator}>
                         <Manipulator/>
