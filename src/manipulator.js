@@ -70,7 +70,7 @@ export default class Manipulator extends PureComponent {
     }
 
     render() {
-        // console.log("render manipulator")
+        // console.log("render manipulator", this.state.node)
         return (
             <div>
                 <Card style={{border: "#d8cebc solid 2px"}}>
@@ -87,7 +87,7 @@ export default class Manipulator extends PureComponent {
                     </Card.Header>
                     <Collapse in={!this.state.collapse} className={"p-0"}>
                         <Card.Body className="m-1">
-                            {this.renderInput()}
+                            {this.renderInput.call(this)}
                         </Card.Body>
                     </Collapse>
                 </Card>

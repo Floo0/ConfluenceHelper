@@ -102,7 +102,7 @@ export default class Graph extends PureComponent {
         var rad = 2
         if (node.pageRank !== 0) {
             // rad = (1/node.pageRank + rad)/2
-            rad = node.pageRank*50 + rad
+            rad = node.pageRank*10 + rad
         }
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
@@ -144,18 +144,19 @@ export default class Graph extends PureComponent {
     }
 
     componentDidUpdate() {
-        this.graphRef.current.zoom(1, 0)
-        this.graphRef.current.zoom(2.5, 1000)
+        this.graphRef.current.zoom(0.2, 0)
+        this.graphRef.current.zoom(1.7, 1500)
     }
 
     render() {
         // console.log("render graph", this.state.graph)
-        // for (const link of this.state.graph.links) {
-        //     console.log("link:", link)
-        // }
         // for (const node of this.state.graph.nodes) {
         //     console.log("node:", node)
         // }
+        // for (const link of this.state.graph.links) {
+        //     console.log("link:", link)
+        // }
+        
         return (
             <div id="Graph" style={{overflow: "hidden"}}>
                 <Card style={{border: "#d8cebc solid 2px"}}>
@@ -171,13 +172,12 @@ export default class Graph extends PureComponent {
                                 // width={1000}
                                 width={window.innerWidth/1.5}
                                 height={700}
-                                linkDirectionalArrowLength={3}
+                                linkDirectionalArrowLength={5}
                                 linkWidth={2}
 
                                 // interaction
                                 onNodeClick={this.handleOnNodeClick.bind(this)}
                                 onNodeRightClick={this.handleNodeRightClick.bind(this)}
-                                nodeLabel={this.parseNodeLabel.bind(this)}
 
                                 // force engine
                                 d3AlphaMin={0.1}
@@ -185,8 +185,9 @@ export default class Graph extends PureComponent {
                                 d3VelocityDecay={0.07}
                                 // warmupTicks={100}
 
-
                                 // rendering
+                                nodeRelSize={11}
+                                nodeLabel={this.parseNodeLabel.bind(this)}
                                 nodeCanvasObject={this.renderNode.bind(this)}
                             /> 
                         </div>

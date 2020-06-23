@@ -3,7 +3,7 @@ import { Card, InputGroup, Form, FormControl, Dropdown, Button,  DropdownButton,
 import Select from 'react-select'
 import PubSub from 'pubsub-js'
 
-import { getLabels } from './neo4j'
+import { getLabels, getNodes } from './neo4j'
 
 
 export default class Filter extends PureComponent {
@@ -12,29 +12,50 @@ export default class Filter extends PureComponent {
 
         this.state = {
             collapse: false,
-            selected: [
+            labels: [],
+            selectedLabels: [
                 {value: "knowledge", label: "Knowledge"},
                 {value: "paper", label: "Paper"},
             ],
-            labels: [],
+            options: [],
+            selectedOptions: [
+
+            ]
+        }
+
+        this.filter = {
+            labels: ["knowledge", "paper"],
         }
 
         getLabels(this)
+        // getNodes(this, ["editor", "project"])
+        getNodes(this) // just get all nodes, there is no need to limit
     }
 
     handleLabelsChange(selected) {
         // console.log("handleLabelsChange:", selected)
-        this.setState({selected: selected})
-
+        this.setState({selectedLabels: selected})
         var labels = []
-        for (const element of selected) {
-            labels. push(element.value)
+        if (selected) {
+            for (const element of selected) {
+                labels.push(element.value)
+            }
         }
-        var filter = {
-            labels: labels
-        }
+        this.filter["labels"] = labels
+        PubSub.publish('graph', {"do": "filter", "use": this.filter})
+    }
 
-        PubSub.publish('graph', {"do": "filter", "use": filter})
+    handleOptionsChange(selected) {
+        // console.log("handleLabelsChange:", selected)
+        this.setState({selectedOptions: selected})
+        var nodes = []
+        if (selected) {
+            for (const element of selected) {
+                nodes.push(element.value)
+            }
+        }
+        this.filter["relatedNodes"] = nodes
+        PubSub.publish('graph', {"do": "filter", "use": this.filter})
     }
 
     render() {
@@ -48,18 +69,32 @@ export default class Filter extends PureComponent {
                     <Collapse in={!this.state.collapse} className={"p-0"}>
                         <Card.Body className="m-1" style={{height: 692}}>
 
+                        <br/>
+                        <label>Types to include:</label>
                         <InputGroup className="p-1">
-                            <InputGroup.Prepend>
-                                <InputGroup.Text id="basic-addon1" style={{width: "80px"}} className="p-1">Labels</InputGroup.Text>
-                            </InputGroup.Prepend>
                             <div style={{width: '300px'}}>
                                 <Select
                                     isMulti
                                     // closeMenuOnSelect={false}
-                                    value={this.state.selected}
+                                    value={this.state.selectedLabels}
                                     options={this.state.labels}
                                     // onFocus={this.handleClickSelect.bind(this)}
                                     onChange={this.handleLabelsChange.bind(this)}
+                                />
+                            </div>
+                        </InputGroup>
+                        
+                        <br/>
+                        <label>Utilized by:</label>
+                        <InputGroup className="p-1">
+                            <div style={{width: '300px'}}>
+                                <Select
+                                    isMulti
+                                    // closeMenuOnSelect={false}
+                                    value={this.state.selectedOptions}
+                                    options={this.state.options}
+                                    // onFocus={this.handleClickSelect.bind(this)}
+                                    onChange={this.handleOptionsChange.bind(this)}
                                 />
                             </div>
                         </InputGroup>

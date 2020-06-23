@@ -10,12 +10,8 @@ const host = 'bolt://141.30.136.185'
 const port = '7687'
 const relationType = 'DETAIL'
 
-// takes in a single neo4j record and extracts the node properties
-function parseRecordToNode(record, column) {
-    const node = record.get(column)
-    // console.log("parseRecordToNode", node, record, column)
-    if (node == null) {return} // skip empty nodes
-
+function parseInnerNode(node) {
+    // console.log("parseInnerNode", node)
     // labels
     var label = ""
     if (node.labels) {
@@ -54,7 +50,7 @@ function parseRecordToNode(record, column) {
     }
 
     const parsedNode = {
-        "id": node.identity.high.toString() + node.identity.low.toString(),
+        "id": node.identity.low.toString(),// node.identity.high.toString() + node.identity.low.toString(),
         "pageRank": pageRank,
         "name": name,
         "label": label,
@@ -67,29 +63,47 @@ function parseRecordToNode(record, column) {
     // console.log("parseRecordToNode parsedNode:", parsedNode)
     return parsedNode
 }
+// takes in a single neo4j record and extracts the node properties
+function parseRecordToNodes(record, column) {
+    var nodes = record.get(column)
+    // console.log("parseRecordToNodes", nodes, record, column)
+    if (nodes == null) {return} // skip empty nodes
+    if (!Array.isArray(nodes)) {nodes = [nodes]}
+    var parsedNodes = []
+    for (const node of nodes) {
+        parsedNodes.push(parseInnerNode(node))
+    }
+    return parsedNodes
+}
 
 // takes in a single neo4j record and extracts the link properties
-function parseRecordToLink(record, column) {
-    const link = record.get(column)
-    // console.log("parseLink", link)
-    if (link == null) {return null}
+function parseRecordToLinks(record, column) {
+    var links = record.get(column)
+    // console.log("parseLinks", links)
+    if (links == null) {return} // skip empty links
+    if (!Array.isArray(links)) {links = [links]}
+    var parsedLinks = []
+    for (const link of links) {  
+        if (link == null) {return null}
 
-    var label = ""
-    if (link.labels) {
-        label = link.labels[0]
-    }
-    var name = ""
-    if (link.properties && link.properties.name) {
-        name = link.properties.name
-    }
+        var label = ""
+        if (link.labels) {
+            label = link.labels[0]
+        }
+        var name = ""
+        if (link.properties && link.properties.name) {
+            name = link.properties.name
+        }
 
-    const parsedLink = {
-        "id": link.identity.high.toString() + link.identity.low.toString(),
-        "source": link.start.high.toString() + link.start.low.toString(),
-        "target": link.end.high.toString() + link.end.low.toString()
+        const parsedLink = {
+            "id": link.identity.low.toString(),// link.identity.high.toString() + link.identity.low.toString(),
+            "source": link.start.low.toString(),// link.start.high.toString() + link.start.low.toString(),
+            "target": link.end.low.toString(),// link.end.high.toString() + link.end.low.toString(),
+        }
+        parsedLinks.push(parsedLink)
     }
-    // console.log("parsedRecordToLink result:", parsedLink)
-    return parsedLink
+    // console.log("parsedRecordToLinks result:", parsedLinks)
+    return parsedLinks
 }
 
 function parseRecordToLabel(record, column) {
@@ -101,9 +115,10 @@ function parseRecordToLabel(record, column) {
     return label
 }
 
-function checkNodeInList(newNode, nodes) {
-    for (const node of nodes) {
-        if (newNode.id === node.id){
+// checks if id of newElement already exists in elements
+function checkIDInList(newElement, elements) {
+    for (const element of elements) {
+        if (newElement.id === element.id){
             return true
         }
     }
@@ -123,13 +138,21 @@ function parseGraph(component, results) {
     // access data
     for (const record of results.records) {
         // console.log("record:", record)
-        const node = parseRecordToNode(record, 'n')
-        if (!checkNodeInList(node, nodes)) {
-            nodes.push(node)
+        const parsedNodes = parseRecordToNodes(record, 'n')
+        for (const parsedNode of parsedNodes) {
+            if (!checkIDInList(parsedNode, nodes)) {
+                nodes.push(parsedNode)
+            }
+        }
+        const parsedLinks = parseRecordToLinks(record, 'r')
+        for (const parsedLink of parsedLinks) {
+            if (!checkIDInList(parsedLink, links)) {
+                links.push(parsedLink)
+            }
         }
 
-        const link = parseRecordToLink(record, 'r')
-        if (link != null) {links.push(link)}
+        // const link = parseRecordToLink(record, 'r')
+        // if (link != null) {links.push(link)}
 
         // for (const link of links) {
         //     console.log("link:", link)
@@ -188,20 +211,6 @@ function runQueries(session, queries) {
         })
 }
 
-function updatePageRank(session) {
-    // console.log("updatePageRank")
-    var queries = []
-    // queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
-    var q = `CALL gds.graph.create.cypher('pagerank_graph', `
-    q += `'MATCH (n) RETURN id(n) AS id', `
-    q += `'MATCH (a)-[:DETAIL]->(b) RETURN id(b) AS source, id(a) AS target')`
-    queries.push(q)
-    queries.push(`CALL gds.pageRank.write('pagerank_graph', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
-    queries.push(`CALL gds.graph.drop('pagerank_graph')`)
-
-    runQueries(session, queries)
-}
-
 function parseNodes(results, component) {
     // console.log("parseNodes:", results)
     var nodes = [] // raw parsed nodes
@@ -215,9 +224,11 @@ function parseNodes(results, component) {
     // access data
     for (const record of results.records) {
         // console.log("record:", record)
-        const node = parseRecordToNode(record, 'n')
-        if (!checkNodeInList(node, nodes)) {
-            nodes.push(node)
+        const parsedNodes = parseRecordToNodes(record, 'n')
+        for (const parsedNode of parsedNodes) {
+            if (!checkIDInList(parsedNode, nodes)) {
+                nodes.push(parsedNode)
+            }
         }
     }
 
@@ -250,14 +261,15 @@ function parseNode(results, id, component) {
     for (const record of results.records) {
         // console.log("record:", record)
         for (const key of record.keys) {
-            const parsedNode = parseRecordToNode(record, key)
-            if (!parsedNode) {continue}
-            // console.log("parsedNode:", parsedNode)
-            if (parsedNode.id === id) {
-                node = parsedNode
-            } else {
-                parents.push({value: parsedNode.id, label: parsedNode.name})
-                oldParents.push(parsedNode.id)
+            const parsedNodes = parseRecordToNodes(record, key)
+            if (!parsedNodes) {continue}
+            for (const parsedNode of parsedNodes) {
+                if (parsedNode.id === id) {
+                    node = parsedNode
+                } else {
+                    parents.push({value: parsedNode.id, label: parsedNode.name})
+                    oldParents.push(parsedNode.id)
+                }
             }
         }
     }
@@ -288,43 +300,70 @@ function parseLabels(results, component) {
     component.setState({labels: labels})
 }
 
+// build query with filter options
+// filter = {labels: [string], relatedNodeIDs [string]}
+function filterQuery(filter) {
+    // console.log("filterQuery:", filter)
+
+    // match nodes
+    var query = `MATCH (p)` //also includes single nodes
+    if (filter && filter.relatedNodes && filter.relatedNodes.length !== 0) {
+        query += ` WHERE ID(p)=` + filter.relatedNodes[0].replace(/(^0+)(.)/, '$2')
+        for (const id of filter.relatedNodes.slice(1)) {
+            query += ` OR ID(p)=` + id.replace(/(^0+)(.)/, '$2')
+        }
+    }
+
+    // apply apoc subgraph
+    query += ` CALL apoc.path.subgraphAll(p, {`
+    if (filter && filter.labels && filter.labels.length !== 0) {
+        query += `labelFilter: "` + filter.labels[0]
+        for (const label of filter.labels.slice(1)) {
+            query += `|` + label
+        }
+        query += `",`
+    }
+    query += ` minLevel: 1, maxLevel: 2})`
+    query += ` YIELD nodes as n, relationships as r`
+
+    return query
+}
+
+// to be called after a change to the data in neo4j
+// updates page rank
+// makes a backup
+function updateNeo4j(session) {
+    // console.log("updateNeo4j")
+    var queries = []
+
+    // update page rank
+    //queries.push(`CALL gds.graph.create('pagerank_graph', '*', '*')`)
+    var q = `CALL gds.graph.create.cypher('pagerank_graph', `
+    q += `'MATCH (n) RETURN id(n) AS id', `
+    q += `'MATCH (a)-[:DETAIL]->(b) RETURN id(b) AS source, id(a) AS target')`
+    queries.push(q)
+    queries.push(`CALL gds.pageRank.write('pagerank_graph', {maxIterations: 20, dampingFactor: 0.85, writeProperty:'pageRank'})`)
+    queries.push(`CALL gds.graph.drop('pagerank_graph')`)
+
+    // make a backup
+    queries.push(`CALL apoc.export.json.all(replace(replace(replace(toString(datetime()),":","_"),"-",""),".","")+'_db_backup.json',{useTypes:true, storeNodeIds:false})`)
+
+    runQueries(session, queries)
+}
+
 // retrieve all nodes and relations
 // returns graph as {nodes, links} through component.setState({graph: ...})
 // use filter to limit search
-// filter = {labels: [string]}
+// filter is defined in filterQuery()
 export function getGraph(component, filter) {
     // console.log("getData")
 
     var driver = createDriver()    
     var session = createSession(driver)
 
-    var query = `MATCH (n)`
-    var first = true
-    if (filter) {
-        for (const label of filter.labels) {
-            if (first) {
-                query += ` WHERE n:` + label
-                first = false
-            } else {
-                query += ` OR n:` + label
-            }
-        }
-    }
-    query += ` OPTIONAL MATCH (n)-[r]->(m)`
-    if (filter) {
-        query += ` WHERE (n:` + filter.labels[0]
-        for (const label of filter.labels.slice(1, -1)) {
-            query += ` OR n:` + label
-        }
-        query += ` OR n:` + filter.labels.slice(-1)[0] + `)`
-        query += ` AND (m:` + filter.labels[0]
-        for (const label of filter.labels.slice(1, -1)) {
-            query += ` OR m:` + label
-        }
-        query += ` OR m:` + filter.labels.slice(-1)[0] + `)`
-    }
+    var query = filterQuery(filter)
     query += ` RETURN n, r`
-    // console.log("query:", query)
+    // console.log("getGraphQuery:", query)
 
     session
         .run(query)
@@ -339,17 +378,20 @@ export function getGraph(component, filter) {
         })
 }
 
-// retrieve all nodes without relations but parents
-// returns "option nodes" as {value, label, data}
-export function getNodes(component) {
+// - retrieve all nodes without relations
+// - returns "option nodes" as {value, label, data} through setState({options: ...})
+// - if [labels] has elements, only nodes with these labels are included
+// - if [relatedNodes] includes node IDs, only nodes with relationship
+//   to these nodes are included 
+export function getNodes(component, filter) {
     var driver = createDriver()    
     var session = createSession(driver)
 
+    var query = `MATCH (n) RETURN n`
+    // console.log("getNodesQuery:", query)
+
     session
-        .run(`
-            MATCH (n)
-            RETURN n
-        `)
+        .run(query)
         .then((results) => {
             // results.records.forEach((record) => console.log(record))
             if (results.summary.notifications.length > 0) {
@@ -371,7 +413,7 @@ export function getNode(component, id) {
     query += ` WHERE ID(n)=` + id.replace(/^0/, '') // delete leading zero, because api gets it wrong at 08
     query += ` OPTIONAL MATCH (m)-[r]->(n)`
     query += ` RETURN n, m`
-    // console.log("query:", query)
+    // console.log("getNodeQuery:", query)
 
     session
         .run(query)
@@ -383,6 +425,28 @@ export function getNode(component, id) {
             parseNode(results, id, component)
             session.close()
             driver.close()
+        })
+}
+
+// retrieves all available labels from neo4j
+// writes results back with component.setState({labels})
+export function getLabels(component) {
+    var driver = createDriver()    
+    var session = createSession(driver)
+
+    session
+        .run(`MATCH (n) RETURN distinct labels(n)`)
+        .then((results) => {
+            if (results.summary.notifications.length > 0) {
+                console.log("neo4j response info:", results.summary.notifications)
+            }
+            // console.log("getLabel results:", results)
+            parseLabels(results, component)
+            session.close()
+            driver.close()
+        })
+        .catch(error => {
+            console.error(error)
         })
 }
 
@@ -436,9 +500,9 @@ export function createNode(type, node, parents) {
             if (results.summary.notifications.length > 0) {
                 console.log("neo4j response info:", results.summary.notifications)
             }
-            updatePageRank(session)
-            // session.close() // -> is done in updatePageRank
-            // driver.close()
+            updateNeo4j(session)
+            // session.close() // -> is done in updateNeo4j
+            // driver.close() // -> is done in updateNeo4j
         })
         .catch(error => {
             console.error("query:", query)
@@ -500,8 +564,9 @@ export function updateNode(node) {
             if (results.summary.notifications.length > 0) {
                 console.log("neo4j response info:", results.summary.notifications)
             }
-            session.close()
-            driver.close()
+            updateNeo4j(session)
+            // session.close() // -> is done in updateNeo4j
+            // driver.close() // -> is done in updateNeo4j
         })
         .catch(error => {
             console.error(error)
@@ -526,33 +591,11 @@ export function deleteNode(id) {
             if (results.summary.notifications.length > 0) {
                 console.log("neo4j response info:", results.summary.notifications)
             }
-            session.close()
-            driver.close()
+            updateNeo4j(session)
+            // session.close() // -> is done in updateNeo4j
+            // driver.close() // -> is done in updateNeo4j
         })
         .catch(error => {
             console.error(error)
         })
-}
-
-// retrieves all available labels from neo4j
-// writes results back with component.setState({labels})
-export function getLabels(component) {
-    var driver = createDriver()    
-    var session = createSession(driver)
-
-    session
-        .run(`MATCH (n) RETURN distinct labels(n)`)
-        .then((results) => {
-            if (results.summary.notifications.length > 0) {
-                console.log("neo4j response info:", results.summary.notifications)
-            }
-            // console.log("getLabel results:", results)
-            parseLabels(results, component)
-            session.close()
-            driver.close()
-        })
-        .catch(error => {
-            console.error(error)
-        })
-    
 }

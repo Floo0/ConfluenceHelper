@@ -128,8 +128,9 @@ export default class Knowledge extends Component {
         // console.log("shouldComponentUpdate", this.props, nextProps)
         // get current node properties (for manipulator)
         if (nextProps.node && nextProps.node !== this.props.node) {
-            getNodes(this)
-            return false
+            // getNodes(this) // update parent options --> only needed on create
+            getNode(this, nextProps.node) // update node information
+            return false // gets updated by getNode()
         }
         return true
     }
