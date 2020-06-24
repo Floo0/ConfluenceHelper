@@ -125,7 +125,8 @@ export default class Graph extends PureComponent {
 
         // node label - name
         const label = node.name
-        const fontSize = 12/currentGlobalScale
+        // const fontSize = 12/currentGlobalScale // standard 12pt, scale independent
+        const fontSize = 3 + 5/currentGlobalScale // 7/currentGlobalScale + currentGlobalScale*2
         const offset = rad*(currentGlobalScale + 65)/100 + 1
         // const textWidth = ctx.measureText(label).width
         // const bckgDimensions = [textWidth, fontSize].map(n => n + fontSize * 0.2); // some padding
@@ -145,7 +146,7 @@ export default class Graph extends PureComponent {
 
     componentDidUpdate() {
         this.graphRef.current.zoom(0.2, 0)
-        this.graphRef.current.zoom(1.7, 1500)
+        this.graphRef.current.zoom(2.0, 1000)
     }
 
     render() {
@@ -170,8 +171,9 @@ export default class Graph extends PureComponent {
                                 ref={this.graphRef}
                                 graphData={this.state.graph}
                                 // width={1000}
-                                width={window.innerWidth/1.5}
-                                height={700}
+                                width={window.innerWidth/1.3}
+                                // height={700}
+                                height={window.innerHeight/1.3}
                                 linkDirectionalArrowLength={5}
                                 linkWidth={2}
 

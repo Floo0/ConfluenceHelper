@@ -67,7 +67,7 @@ export default class Filter extends PureComponent {
                         <h5 style={{marginTop: "7px", float: "left", minWidth: "150px"}}>Filter</h5>
                     </Card.Header>
                     <Collapse in={!this.state.collapse} className={"p-0"}>
-                        <Card.Body className="m-1" style={{height: 692}}>
+                        <Card.Body className="m-1" style={{height: window.innerHeight/1.3 - 8}}>
 
                         <br/>
                         <label>Types to include:</label>
