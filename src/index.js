@@ -39,18 +39,18 @@ class App extends Component {
                         <Nav.Link style={{color: this.state.hide.graph? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
                             paddingTop: "0.83em", fontWeight: this.state.hide.graph? "normal": "bold"}} 
                             onSelect={this.selectGraph.bind(this, 'graph')} eventKey="main">Graph</Nav.Link>
+                        <Nav.Link style={{color: this.state.hide.filter? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
+                            paddingTop: "0.83em", fontWeight: this.state.hide.filter? "normal": "bold"}} 
+                            onSelect={this.selectGraph.bind(this, 'filter')} eventKey="main">Filter</Nav.Link>
                         <Nav.Link style={{color: this.state.hide.creator? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
                             paddingTop: "0.83em", fontWeight: this.state.hide.creator? "normal": "bold"}} 
                             onSelect={this.selectGraph.bind(this, 'creator')} eventKey="main">Creator</Nav.Link>
                         <Nav.Link style={{color: this.state.hide.manipulator? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
                             paddingTop: "0.83em", fontWeight: this.state.hide.manipulator? "normal": "bold"}} 
                             onSelect={this.selectGraph.bind(this, 'manipulator')} eventKey="main">Manipulator</Nav.Link>
-                        <Nav.Link style={{color: this.state.hide.filter? "rgba(255,255,255,.5)": "rgba(255,255,255,0.9)",
-                            paddingTop: "0.83em", fontWeight: this.state.hide.filter? "normal": "bold"}} 
-                            onSelect={this.selectGraph.bind(this, 'filter')} eventKey="main">Filter</Nav.Link>
                     </Nav>
                 </Navbar>
-                <Row className="m-0 p-0" hidden={this.state.hide.graph}>
+                <Row className="m-0 p-0">
                     <Col className="m-0 p-0" hidden={this.state.hide.graph}>
                         <Graph/>
                     </Col>

@@ -405,12 +405,12 @@ export function getNodes(component, filter) {
 
 // retrieve all properties and parent node ids for sepcific node id
 export function getNode(component, id) {
-    // console.log("getNode:", id)
+    console.log("getNode:", id)
     var driver = createDriver()    
     var session = createSession(driver)
 
     var query = `MATCH (n)`
-    query += ` WHERE ID(n)=` + id.replace(/^0/, '') // delete leading zero, because api gets it wrong at 08
+    query += ` WHERE ID(n)=` + id.replace(/(^0+)(.)/, '$2') // delete leading zero, because api gets it wrong at 08
     query += ` OPTIONAL MATCH (m)-[r]->(n)`
     query += ` RETURN n, m`
     // console.log("getNodeQuery:", query)

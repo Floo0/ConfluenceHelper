@@ -4,7 +4,7 @@ import DatePicker from 'react-datepicker'
 import Select from 'react-select'
 import PubSub from 'pubsub-js'
 
-import { getNodes, getNode, createNode, updateNode, deleteNode } from './neo4j'
+import { getAllNodes, getNode, createNode, updateNode, deleteNode } from './neo4j'
 
 
 export default class Project extends Component {
@@ -29,7 +29,7 @@ export default class Project extends Component {
             },
         }
 
-        getNodes(this)
+        getAllNodes(this)
         if (this.props.node) {getNode(this, this.props.node)} // get current node properties (for manipulator)
     }
 

@@ -205,7 +205,7 @@ export default class Paper extends Component {
                         placeholder={this.state.short}
                         as="textarea"
                         // aria-label="With textarea"
-                        onChange={this.handleLinkChange.bind(this)}
+                        onChange={this.handleShortChange.bind(this)}
                     />
                 </InputGroup>
 

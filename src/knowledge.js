@@ -110,8 +110,10 @@ export default class Knowledge extends Component {
         }
         updateNode(node)
         setTimeout(() => {
-            PubSub.publish('graph', {"do": "reload", "use": ""})
-            getNode(this, this.props.node)
+            setTimeout(() => PubSub.publish('graph', {"do": "reload", "use": ""}), 1000)
+            PubSub.publish('creator', {"do": "update", "use": ""})
+            PubSub.publish('manipulator', {"do": "update", "use": ""})
+            // getNode(this, this.props.node)
         }, 1000)
     }
 
