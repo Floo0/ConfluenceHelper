@@ -12,6 +12,7 @@ export default class Graph extends PureComponent {
 
         this.state = {
             collapse: false,
+            collapseLegend: false,
             graph: {
                 "nodes": [ 
                     { 
@@ -40,6 +41,12 @@ export default class Graph extends PureComponent {
         this.filter = {
             labels: ["knowledge", "paper"],
         },
+        this.colorType = {
+            "knowledge": "hsl(359, 84%, 70%)", // red
+            "paper": "hsl(225, 75%, 70%)", // blue
+            "project": "hsl(135, 75%, 70%)", // green
+            "editor": "hsl(40, 91%, 70%)", // yellow
+        }
 
         PubSub.subscribe('graph', this.onMessage.bind(this))
     }
@@ -106,25 +113,14 @@ export default class Graph extends PureComponent {
         }
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
-        ctx.fillStyle = "hsl(300, 75%, 40%)"
-        switch (node.label) {
-            case "knowledge":
-                ctx.fillStyle = "hsl(359, 84%, 70%)" // red
-                break
-            case "paper":
-                ctx.fillStyle = "hsl(225, 75%, 70%)" // blue
-                break
-            case "project":
-                ctx.fillStyle = "hsl(135, 75%, 70%)" // green
-                break
-            case "editor":
-                ctx.fillStyle = "hsl(40, 91%, 70%)" // yellow
-                break
-        }
+        ctx.fillStyle = "hsl(300, 75%, 40%)" // if none matches
+        ctx.fillStyle = this.colorType[node.label]
         ctx.fill()
 
         // node label - name
-        const label = node.name
+        const maxLength = 37
+        var label = node.name.slice(0, maxLength)
+        if (node.name.length > maxLength) {label += `...`}
         // const fontSize = 12/currentGlobalScale // standard 12pt, scale independent
         const fontSize = 3 + 5/currentGlobalScale // 7/currentGlobalScale + currentGlobalScale*2
         const offset = rad*(currentGlobalScale + 65)/100 + 1
@@ -138,6 +134,17 @@ export default class Graph extends PureComponent {
         ctx.font = `${fontSize}px Sans-Serif`
         ctx.fillText(label, node.x + offset, node.y - offset)
         // link props
+    }
+
+    renderLegend() {
+        var items = []
+        for (const [key, value] of Object.entries(this.colorType)) {
+            if (this.filter.labels.includes(key)) {
+                const name = key.charAt(0).toUpperCase() + key.slice(1)
+                items.push(<li key={key} style={{color: value}}>{name}</li>)
+            }
+        }
+        return items
     }
 
     componentDidMount() {
@@ -165,7 +172,7 @@ export default class Graph extends PureComponent {
                             <h5 style={{marginTop: "7px", float: "left", minWidth: "80px"}}>Graph</h5>
                             <Button className="float-right" variant="secondary" onClick={this.handleReload.bind(this)}>Reload</Button>
                     </Card.Header>
-                    <Collapse in={!this.state.collapse} className={"p-0"}>
+                    <Collapse in={!this.state.collapse} className="p-0">
                         <div>
                             <ForceGraph2D
                                 ref={this.graphRef}
@@ -191,7 +198,16 @@ export default class Graph extends PureComponent {
                                 nodeRelSize={11}
                                 nodeLabel={this.parseNodeLabel.bind(this)}
                                 nodeCanvasObject={this.renderNode.bind(this)}
-                            /> 
+                            />
+                            <Card className="p-1 m1" style={{position: "absolute", bottom: "0", right: "0", border: "#d8cebc solid 2px"}}
+                                    onClick={()=>{this.setState({collapseLegend: !this.state.collapseLegend})}}>
+                                <div>Legend</div>
+                                <Collapse className="p-0" in={!this.state.collapseLegend}>
+                                    <div>
+                                        {this.renderLegend.call(this)}
+                                    </div>
+                                </Collapse>
+                            </Card>
                         </div>
                     </Collapse>
                </Card>

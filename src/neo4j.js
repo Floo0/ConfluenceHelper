@@ -405,7 +405,7 @@ export function getNodes(component, filter) {
 
 // retrieve all properties and parent node ids for sepcific node id
 export function getNode(component, id) {
-    console.log("getNode:", id)
+    // console.log("getNode:", id)
     var driver = createDriver()    
     var session = createSession(driver)
 
