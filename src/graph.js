@@ -41,11 +41,11 @@ export default class Graph extends PureComponent {
         this.filter = {
             labels: ["knowledge", "paper"],
         },
-        this.colorType = {
-            "knowledge": "hsl(359, 84%, 70%)", // red
-            "paper": "hsl(225, 75%, 70%)", // blue
-            "project": "hsl(135, 75%, 70%)", // green
-            "editor": "hsl(40, 91%, 70%)", // yellow
+        this.colourType = {
+            "knowledge": {h:359, s:84, l:60}, // red
+            "paper": {h:225, s:75, l:60}, // blue
+            "project": {h:135, s:75, l:60}, // green
+            "editor": {h:40, s:91, l:60}, // yellow
         }
 
         PubSub.subscribe('graph', this.onMessage.bind(this))
@@ -104,17 +104,22 @@ export default class Graph extends PureComponent {
 
     renderNode(node, ctx, currentGlobalScale, isShadowContext) {
         // console.log("renderNode:", this, node, ctx, currentGlobalScale, isShadowContext)
-        // console.log("renderNode", node.label)
+        // console.log("renderNode", node)
         // node shape -circle
         var rad = 2
         if (node.pageRank !== 0) {
             // rad = (1/node.pageRank + rad)/2
             rad = node.pageRank*10 + rad
         }
+        const diffTime = Math.abs(Date.now() - node.update);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
-        ctx.fillStyle = "hsl(300, 75%, 40%)" // if none matches
-        ctx.fillStyle = this.colorType[node.label]
+        ctx.fillStyle = "hsl(300, 75%, 60%)" // if none matches
+        const colour = this.colourType[node.label]
+        const colourDiffDays = Math.round(45/(1+Math.exp(-0.05*(diffDays-20)))) + 50
+        // console.log("colour:", "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)")
+        ctx.fillStyle = "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)"
         ctx.fill()
 
         // node label - name
@@ -138,10 +143,11 @@ export default class Graph extends PureComponent {
 
     renderLegend() {
         var items = []
-        for (const [key, value] of Object.entries(this.colorType)) {
+        for (const [key, value] of Object.entries(this.colourType)) {
             if (this.filter.labels.includes(key)) {
                 const name = key.charAt(0).toUpperCase() + key.slice(1)
-                items.push(<li key={key} style={{color: value}}>{name}</li>)
+                const colourStr = "hsl(" + value.h + ", " + value.s + "%, " + value.l + "%)"
+                items.push(<li key={key} style={{color: colourStr}}>{name}</li>)
             }
         }
         return items

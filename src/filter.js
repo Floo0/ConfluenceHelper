@@ -85,7 +85,7 @@ export default class Filter extends PureComponent {
                         </InputGroup>
                         
                         <br/>
-                        <label>Utilized by:</label>
+                        <label>Utilized by (+2 hops):</label>
                         <InputGroup className="p-1">
                             <div style={{width: '300px'}}>
                                 <Select

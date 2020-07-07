@@ -315,6 +315,7 @@ function filterQuery(filter) {
     }
 
     // apply apoc subgraph
+    // see: https://neo4j.com/docs/labs/apoc/current/graph-querying/expand-subgraph/
     query += ` CALL apoc.path.subgraphAll(p, {`
     if (filter && filter.labels && filter.labels.length !== 0) {
         query += `labelFilter: "` + filter.labels[0]
