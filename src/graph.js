@@ -45,7 +45,7 @@ export default class Graph extends PureComponent {
             "knowledge": {h:359, s:84, l:60}, // red
             "paper": {h:225, s:75, l:60}, // blue
             "project": {h:135, s:75, l:60}, // green
-            "editor": {h:40, s:91, l:60}, // yellow
+            "editor": {h:40, s:90, l:60}, // yellow
         }
 
         PubSub.subscribe('graph', this.onMessage.bind(this))
@@ -111,15 +111,21 @@ export default class Graph extends PureComponent {
             // rad = (1/node.pageRank + rad)/2
             rad = node.pageRank*10 + rad
         }
-        const diffTime = Math.abs(Date.now() - node.update);
+        var diffTime = 0
+        // filter out invalid and not available dates
+        if (node.hasOwnProperty("update") && node.update instanceof Date && !isNaN(node.update)) {
+            diffTime = Math.abs(Date.now() - node.update)
+        }
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
         ctx.beginPath()
         ctx.arc(node.x, node.y, rad, 0, 2 * Math.PI, false)
         ctx.fillStyle = "hsl(300, 75%, 60%)" // if none matches
-        const colour = this.colourType[node.label]
-        const colourDiffDays = Math.round(45/(1+Math.exp(-0.05*(diffDays-20)))) + 50
-        // console.log("colour:", "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)")
-        ctx.fillStyle = "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)"
+        if (node.label in this.colourType) {
+            const colour = this.colourType[node.label]
+            const colourDiffDays = Math.round(45/(1+Math.exp(-0.05*(diffDays-20)))) + 50
+            // if (node.label ==="editor") {console.log("colour:", "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)")}
+            ctx.fillStyle = "hsl(" + colour.h + ", " + colour.s + "%, " + colourDiffDays + "%)"
+        }
         ctx.fill()
 
         // node label - name
