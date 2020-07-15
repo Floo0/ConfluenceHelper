@@ -472,6 +472,10 @@ export function createNode(type, node, parents) {
             query += ` MERGE (` + nodeID + `:knowledge {name: '` + node.Name + `', link: '` + node.Link + `'`
             query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
             break
+        case "tool":
+            query += ` MERGE (` + nodeID + `:tool {name: '` + node.Name + `', link: '` + node.Link + `'`
+            query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`
+            break
         case "paper":
             query += ` MERGE (` + nodeID + `:paper {name: '` + node.Name + `', link: '` + node.Link + `'`
             query += `, creation: '` + node.Creation + `', update: '` + node.Update + `', short: '` + node.Short +`'})`

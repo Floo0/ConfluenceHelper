@@ -51,10 +51,10 @@ class App extends Component {
                     </Nav>
                 </Navbar>
                 <Row className="m-0 p-0">
-                    <Col className="m-0 p-0" hidden={this.state.hide.graph}>
+                    <Col className="m-0 p-0" md={9} hidden={this.state.hide.graph}>
                         <Graph/>
                     </Col>
-                    <Col className="m-0 p-0" hidden={this.state.hide.filter}>
+                    <Col className="m-0 p-0" md={3} hidden={this.state.hide.filter}>
                         <Filter/>
                     </Col>
                 </Row>

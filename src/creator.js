@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 import { Card, InputGroup, Form, FormControl, Dropdown, Button,  DropdownButton, Collapse } from 'react-bootstrap'
 
 import Knowledge from './knowledge'
+import Tool from './tool'
 import Paper from './paper'
 import Project from './project'
 import Editor from './editor'
@@ -11,7 +12,7 @@ export default class Creator extends PureComponent {
     constructor(props) {
         super(props)
 
-        this.types = ["Knowledge", "Paper", "Project", "Editor"]
+        this.types = ["Knowledge", "Tool", "Paper", "Project", "Editor"]
 
         this.state = {
             collapse: true,
@@ -45,6 +46,8 @@ export default class Creator extends PureComponent {
         switch (this.state.type) {
             case "Knowledge":
                 return <Knowledge/>
+            case "Tool":
+                return <Tool/>
             case "Paper":
                 return <Paper/>
             case "Project":

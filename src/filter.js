@@ -15,6 +15,7 @@ export default class Filter extends PureComponent {
             labels: [],
             selectedLabels: [
                 {value: "knowledge", label: "Knowledge"},
+                {value: "tool", label: "Tool"},
                 {value: "paper", label: "Paper"},
             ],
             options: [],
@@ -24,7 +25,7 @@ export default class Filter extends PureComponent {
         }
 
         this.filter = {
-            labels: ["knowledge", "paper"],
+            // labels: ["knowledge", "tool", "paper"],
         }
 
         getLabels(this)

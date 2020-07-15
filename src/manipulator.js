@@ -5,6 +5,7 @@ import PubSub from 'pubsub-js'
 
 import { getNodes } from './neo4j'
 import Knowledge from './knowledge'
+import Tool from './tool'
 import Paper from './paper'
 import Project from './project'
 import Editor from './editor'
@@ -58,6 +59,8 @@ export default class Manipulator extends PureComponent {
         switch(this.state.node.label) {
             case "knowledge":
                 return(<Knowledge node={this.state.node.id}/>)
+            case "tool":
+                return(<Tool node={this.state.node.id}/>)
             case "paper":
                 return(<Paper node={this.state.node.id}/>)
             case "project":

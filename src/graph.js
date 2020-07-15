@@ -39,10 +39,11 @@ export default class Graph extends PureComponent {
 
         this.graphRef = React.createRef()
         this.filter = {
-            labels: ["knowledge", "paper"],
+            labels: ["knowledge", "tool", "paper"],
         },
         this.colourType = {
-            "knowledge": {h:359, s:84, l:60}, // red
+            "knowledge": {h:359, s:85, l:60}, // red
+            "tool": {h:130, s:50, l:60}, // red
             "paper": {h:225, s:75, l:60}, // blue
             "project": {h:135, s:75, l:60}, // green
             "editor": {h:40, s:90, l:60}, // yellow
@@ -190,7 +191,7 @@ export default class Graph extends PureComponent {
                                 ref={this.graphRef}
                                 graphData={this.state.graph}
                                 // width={1000}
-                                width={window.innerWidth/1.3}
+                                // width={window.innerWidth/1.3}
                                 // height={700}
                                 height={window.innerHeight/1.3}
                                 linkDirectionalArrowLength={5}
@@ -201,9 +202,9 @@ export default class Graph extends PureComponent {
                                 onNodeRightClick={this.handleNodeRightClick.bind(this)}
 
                                 // force engine
-                                d3AlphaMin={0.1}
-                                d3AlphaDecay={0.03} //
-                                d3VelocityDecay={0.07}
+                                d3AlphaMin={0.2}
+                                d3AlphaDecay={0.03} // 0.03
+                                d3VelocityDecay={0.2} // 0.07
                                 // warmupTicks={100}
 
                                 // rendering
