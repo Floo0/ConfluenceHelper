@@ -19,13 +19,13 @@ export default class Filter extends PureComponent {
                 {value: "paper", label: "Paper"},
             ],
             options: [],
-            selectedOptions: [
-
-            ]
+            selectedOptions: [],
+            minHop: 1,
+            maxHop: 3,
         }
 
         this.filter = {
-            // labels: ["knowledge", "tool", "paper"],
+            labels: this.state.selectedLabels.map(x => x.value),
         }
 
         getLabels(this)
@@ -59,6 +59,26 @@ export default class Filter extends PureComponent {
         PubSub.publish('graph', {"do": "filter", "use": this.filter})
     }
 
+    handleMinHopChange(event) {
+        // console.log("handleMinHopChange", event.target.value, this.state)
+        var val = event.target.value
+        if (val < 0 ) {val = 0}
+        if (val > 1 ) {val = 1} // APOC: minLevel can only be 0 or 1 in subgraphAll()
+        this.setState({minHop: val})
+        const minMaxHop = [val, this.state.maxHop]
+        this.filter["minMaxHop"] = minMaxHop
+        PubSub.publish('graph', {"do": "filter", "use": this.filter})
+    }
+
+    handleMaxHopChange(event) {
+        var val = event.target.value
+        if (val < 0 ) {val = 0}
+        this.setState({maxHop: val})
+        const minMaxHop = [this.state.minHop, val]
+        this.filter["minMaxHop"] = minMaxHop
+        PubSub.publish('graph', {"do": "filter", "use": this.filter})
+    }
+
     render() {
         // console.log("render manipulator")
         return (
@@ -86,7 +106,7 @@ export default class Filter extends PureComponent {
                         </InputGroup>
                         
                         <br/>
-                        <label>Utilized by (+2 hops):</label>
+                        <label>Utilized by:</label>
                         <InputGroup className="p-1">
                             <div style={{width: '300px'}}>
                                 <Select
@@ -98,6 +118,30 @@ export default class Filter extends PureComponent {
                                     onChange={this.handleOptionsChange.bind(this)}
                                 />
                             </div>
+                            <InputGroup>
+                                <InputGroup.Prepend>
+                                    <InputGroup.Text id="basic-addon1" style={{width: "90px"}}> Min Hop</InputGroup.Text>
+                                </InputGroup.Prepend>
+                                <div style={{width: "60px"}}>
+                                    <FormControl
+                                        value={this.state.minHop}
+                                        type="number"
+                                        onChange={this.handleMinHopChange.bind(this)}
+                                    />
+                                </div>
+                            </InputGroup>
+                            <InputGroup>
+                                <InputGroup.Prepend>
+                                    <InputGroup.Text id="basic-addon1" style={{width: "90px"}}> Max Hop</InputGroup.Text>
+                                </InputGroup.Prepend>
+                                <div style={{width: "60px"}}>
+                                    <FormControl
+                                        value={this.state.maxHop}
+                                        type="number"
+                                        onChange={this.handleMaxHopChange.bind(this)}
+                                    />
+                                </div>
+                            </InputGroup>
                         </InputGroup>
 
                         </Card.Body>

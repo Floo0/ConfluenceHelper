@@ -302,7 +302,7 @@ function parseLabels(results, component) {
 
 // build query with filter options
 // filter = {labels: [string], relatedNodeIDs [string]}
-function filterQuery(filter) {
+function createFilterQuery(filter) {
     // console.log("filterQuery:", filter)
 
     // match nodes
@@ -324,8 +324,12 @@ function filterQuery(filter) {
         }
         query += `",`
     }
-    query += ` minLevel: 1, maxLevel: 2})`
-    query += ` YIELD nodes as n, relationships as r`
+    if (filter && filter.minMaxHop && filter.minMaxHop.length !== 0) {
+        query += ` minLevel: `+ filter.minMaxHop[0] +`, maxLevel: ` + filter.minMaxHop[1] + `})`
+    } else {
+        query += ` minLevel: 1, maxLevel: 2})`
+    }
+        query += ` YIELD nodes as n, relationships as r`
 
     return query
 }
@@ -362,7 +366,7 @@ export function getGraph(component, filter) {
     var driver = createDriver()    
     var session = createSession(driver)
 
-    var query = filterQuery(filter)
+    var query = createFilterQuery(filter)
     query += ` RETURN n, r`
     // console.log("getGraphQuery:", query)
 

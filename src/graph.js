@@ -149,6 +149,7 @@ export default class Graph extends PureComponent {
     }
 
     renderLegend() {
+        // console.log("renderLegend", this.filter)
         var items = []
         for (const [key, value] of Object.entries(this.colourType)) {
             if (this.filter.labels.includes(key)) {
